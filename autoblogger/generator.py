@@ -1,14 +1,24 @@
 import requests
 import os
 import time
-from requests.exceptions import RequestException
+from datetime import date
 from dotenv import load_dotenv
+from requests.exceptions import RequestException
+import markdown  # ✅ Markdown parser
 
 load_dotenv()
 
 def get_unsplash_image(query: str) -> str:
-    response = requests.get(f"https://source.unsplash.com/1600x900/?{query}")
-    return response.url if response.status_code == 200 else ""
+    try:
+        response = requests.get(f"https://source.unsplash.com/1600x900/?{query}")
+        if response.status_code == 200:
+            return response.url
+    except:
+        pass
+    return "https://via.placeholder.com/800x400.png?text=Image+Unavailable"
+
+def format_blog_content(content: str) -> str:
+    return markdown.markdown(content)
 
 def generate_blog(prompt: str, filename: str) -> None:
     API_KEY = os.getenv("GROQ_API_KEY")
@@ -29,32 +39,42 @@ def generate_blog(prompt: str, filename: str) -> None:
 
             if 'choices' in res_json:
                 blog_content = res_json['choices'][0]['message']['content']
+
+                # 🧹 Remove any echoed prompt
+                if blog_content.strip().startswith("Act as a professional"):
+                    blog_content = "\n".join(blog_content.strip().split('\n')[3:])
+
                 break
             elif response.status_code == 503:
-                print("⚠️ Service Unavailable. Retrying in 5 seconds...")
+                print("⚠️ Groq Service Unavailable. Retrying...")
                 time.sleep(5)
             else:
-                print(f"Groq API Error: {res_json}")
+                print("❌ Groq API error:", res_json)
                 return
         except RequestException as e:
-            print(f"🚫 Request failed: {e}. Retrying in 5 seconds...")
+            print(f"🚫 Request failed: {e}")
             time.sleep(5)
     else:
-        print("❌ Failed to get response from Groq API after 3 attempts.")
+        print("❌ Failed after 3 attempts.")
         return
 
-    # Generate images
-    thumbnail = get_unsplash_image("AI recruitment")
-    section_img = get_unsplash_image("interview AI")
+    # 🎯 Get real images
+    thumbnail = get_unsplash_image("AI strategy")
+    support_img = get_unsplash_image("digital transformation")
 
-    formatted_content = blog_content.replace('\n\n', '</p><p>').replace('\n', '<br>')
+    # 🏷 Extract first line as title
+    first_line = blog_content.strip().split('\n')[0].replace("*", "").replace('"', '')
+    html_title = first_line if len(first_line) < 100 else "Latest AI Blog"
 
-    html_output = f"""
-<!DOCTYPE html>
+    # ✨ Format the content
+    formatted_content = format_blog_content(blog_content)
+
+    # 🧾 Build HTML
+    html_output = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{prompt[:50]}</title>
+    <title>{html_title}</title>
     <style>
         body {{ font-family: sans-serif; max-width: 800px; margin: auto; line-height: 1.6; padding: 2rem; }}
         h1 {{ color: #222; }}
@@ -63,21 +83,14 @@ def generate_blog(prompt: str, filename: str) -> None:
     </style>
 </head>
 <body>
-    <h1>{prompt}</h1>
+    <h1>{html_title}</h1>
     <img src="{thumbnail}" alt="Blog Thumbnail">
-    <p>{formatted_content}</p>
-    <img src="{section_img}" alt="Supporting Visual">
+    {formatted_content}
+    <img src="{support_img}" alt="Supporting Visual">
 </body>
 </html>
 """
+
     with open(filename, "w") as f:
         f.write(html_output)
-
     print(f"✅ Blog generated as {filename}")
-    
-if __name__ == "__main__":
-    from datetime import date
-    generate_blog(
-        "Write a 500-word blog on current AI trends in recruitment.",
-        f"blogs/test_ai_blog_{date.today()}.html"
-    )

@@ -42,7 +42,7 @@ The blog must:
 - Avoid fluff, filler, or repeating generic facts
 
 Ensure SEO-friendly structure and originality. This should read like something you'd publish on TechCrunch or HackerNoon.
-"""
+""".strip()
     else:
         prompt = f"""
 Act as a professional tech content writer. Write a unique, in-depth 500-word blog post targeted at startup founders and SaaS operators.
@@ -58,7 +58,7 @@ The blog should:
 - Sound natural, confident, and informative — like a blog from a top founder
 
 Avoid fluff. Give value.
-"""
+""".strip()
 
     filename = f"blogs/{topic['brand']}.{date.today()}.html"
     print(f"📝 Generating blog for {topic['brand']} → {filename}")

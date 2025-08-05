@@ -10,17 +10,18 @@ load_dotenv()
 
 def get_unsplash_image(query: str) -> str:
     try:
-        response = requests.get(f"https://source.unsplash.com/1600x900/?{query}")
+        response = requests.get(f"https://source.unsplash.com/1600x900/?{query}", allow_redirects=True)
         if response.status_code == 200:
             return response.url
     except:
         pass
-    return "https://via.placeholder.com/800x400.png?text=Image+Unavailable"
+    # 🔁 Fallback to a default image if Unsplash fails
+    return "https://images.unsplash.com/photo-1498050108023-c5249f4df085"
 
 def format_blog_content(content: str) -> str:
     return markdown.markdown(content)
 
-def generate_blog(prompt: str, filename: str) -> None:
+def generate_blog(prompt: str, filename: str, image_query: str) -> None:
     API_KEY = os.getenv("GROQ_API_KEY")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -59,8 +60,8 @@ def generate_blog(prompt: str, filename: str) -> None:
         return
 
     # 🎯 Get real images
-    thumbnail = get_unsplash_image("AI strategy")
-    support_img = get_unsplash_image("digital transformation")
+    thumbnail = get_unsplash_image(image_query)
+    support_img = get_unsplash_image(image_query + " tech")
 
     # 🏷 Extract first line as title
     first_line = blog_content.strip().split('\n')[0].replace("*", "").replace('"', '')

@@ -20,6 +20,7 @@ brands = [
 for topic in brands:
     print(f"🔍 Fetching trending topics for {topic['brand']}…")
     trending = get_trending_topics(topic["search_query"], max_results=1)
+    image_query = topic["search_query"].split()[0] + " " + trending[0]['title'].split()[0] if trending else topic["search_query"]
 
     if trending:
         headline = trending[0]['title']
@@ -62,4 +63,4 @@ Avoid fluff. Give value.
 
     filename = f"blogs/{topic['brand']}.{date.today()}.html"
     print(f"📝 Generating blog for {topic['brand']} → {filename}")
-    generate_blog(prompt, filename)
+    generate_blog(prompt, filename, image_query)

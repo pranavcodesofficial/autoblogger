@@ -1,6 +1,7 @@
 from autoblogger.generator import generate_blog
 from autoblogger.scraper import get_trending_topics
 from datetime import date
+import random
 
 brands = [
     {
@@ -17,16 +18,21 @@ brands = [
     },
 ]
 
+# Random modifiers to ensure image variety
+image_modifiers = ["", "futuristic", "abstract", "3D", "cyber", "modern office", "digital transformation", "infographic", "data mesh", "UX dashboard"]
+
 for topic in brands:
     print(f"🔍 Fetching trending topics for {topic['brand']}…")
     trending = get_trending_topics(topic["search_query"], max_results=1)
-    image_query = topic["search_query"].split()[0] + " " + trending[0]['title'].split()[0] if trending else topic["search_query"]
 
-    if trending:
+    # Add random image modifier
+    modifier = random.choice(image_modifiers)
+
+    if trending and trending[0].get('title'):
         headline = trending[0]['title']
         snippet = trending[0].get('snippet', '')
-
-        prompt = f"""
+        image_query = f"{headline} {modifier}"
+        prompt = f'''
 Act as a professional tech content writer. Write an engaging and high-quality 500-word blog post targeted at startup founders, product managers, and SaaS professionals.
 
 Topic: "{headline}"
@@ -43,9 +49,10 @@ The blog must:
 - Avoid fluff, filler, or repeating generic facts
 
 Ensure SEO-friendly structure and originality. This should read like something you'd publish on TechCrunch or HackerNoon.
-""".strip()
+'''.strip()
     else:
-        prompt = f"""
+        image_query = f"{topic['search_query']} {modifier}"
+        prompt = f'''
 Act as a professional tech content writer. Write a unique, in-depth 500-word blog post targeted at startup founders and SaaS operators.
 
 Topic: "{topic['search_query']}"
@@ -59,7 +66,7 @@ The blog should:
 - Sound natural, confident, and informative — like a blog from a top founder
 
 Avoid fluff. Give value.
-""".strip()
+'''.strip()
 
     filename = f"blogs/{topic['brand']}.{date.today()}.html"
     print(f"📝 Generating blog for {topic['brand']} → {filename}")

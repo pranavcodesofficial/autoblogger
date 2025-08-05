@@ -5,6 +5,8 @@ from datetime import date
 from dotenv import load_dotenv
 from requests.exceptions import RequestException
 import markdown  # ✅ Markdown parser
+from autoblogger.scraper import get_trending_topics  # 🔁 Dynamic news
+import random
 
 load_dotenv()
 
@@ -21,7 +23,21 @@ def get_unsplash_image(query: str) -> str:
 def format_blog_content(content: str) -> str:
     return markdown.markdown(content)
 
+def get_dynamic_prompt(base_prompt: str, keyword: str) -> str:
+    trending = get_trending_topics(keyword, max_results=1)
+    if trending:
+        snippet = trending[0]['snippet']
+        return f"{base_prompt}\n\nContext from today’s news: {snippet}"
+    return base_prompt
+
 def generate_blog(prompt: str, filename: str, image_query: str) -> None:
+    # 🧠 Add randomness
+    suffixes = ["– 2025 Edition", "🔥", "For SaaS Founders", "🚀", "From Today’s Lens"]
+    prompt += f" {random.choice(suffixes)}"
+
+    # 💬 Inject news context
+    prompt = get_dynamic_prompt(prompt, image_query)
+
     API_KEY = os.getenv("GROQ_API_KEY")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -72,9 +88,10 @@ def generate_blog(prompt: str, filename: str, image_query: str) -> None:
 
     # 🧾 Build HTML
     html_output = f"""<!DOCTYPE html>
-<html lang="en">
+
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
+    <meta charset=\"UTF-8\">
     <title>{html_title}</title>
     <style>
         body {{ font-family: sans-serif; max-width: 800px; margin: auto; line-height: 1.6; padding: 2rem; }}
@@ -85,12 +102,13 @@ def generate_blog(prompt: str, filename: str, image_query: str) -> None:
 </head>
 <body>
     <h1>{html_title}</h1>
-    <img src="{thumbnail}" alt="Blog Thumbnail">
+    <img src=\"{thumbnail}\" alt=\"Blog Thumbnail\">
     {formatted_content}
-    <img src="{support_img}" alt="Supporting Visual">
+    <img src=\"{support_img}\" alt=\"Supporting Visual\">
 </body>
 </html>
 """
+
 
     with open(filename, "w") as f:
         f.write(html_output)

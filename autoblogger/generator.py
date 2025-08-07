@@ -11,15 +11,23 @@ import random
 load_dotenv()
 
 def get_unsplash_image(query: str) -> str:
-    try:
-        response = requests.get(f"https://source.unsplash.com/1600x900/?{query}", allow_redirects=True)
-        if response.status_code == 200:
-            return response.url
-    except:
-        pass
-    # 🔁 Fallback to a default image if Unsplash fails
-    return "https://images.unsplash.com/photo-1498050108023-c5249f4df085"
+    access_key = os.getenv("UNSPLASH_ACCESS_KEY")  # put your key in .env
+    headers = {"Accept-Version": "v1", "Authorization": f"Client-ID {access_key}"}
+    params = {"query": query, "orientation": "landscape", "per_page": 30}
 
+    try:
+        response = requests.get("https://api.unsplash.com/search/photos", headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            results = data.get("results", [])
+            if results:
+                # 🔁 Pick a random image from results
+                return random.choice(results)["urls"]["regular"]
+    except Exception as e:
+        print(f"⚠️ Unsplash API failed: {e}")
+
+    # Fallback
+    return "https://images.unsplash.com/photo-1498050108023-c5249f4df085"
 def format_blog_content(content: str) -> str:
     return markdown.markdown(content)
 
@@ -113,3 +121,4 @@ def generate_blog(prompt: str, filename: str, image_query: str) -> None:
     with open(filename, "w") as f:
         f.write(html_output)
     print(f"✅ Blog generated as {filename}")
+    print(os.getenv("UNSPLASH_ACCESS_KEY"))  # Add this temporarily in your script
